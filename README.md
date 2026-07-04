@@ -493,3 +493,83 @@ AI • Full Stack Development • Software Engineering
 ---
 
 ⭐ If you like this project, consider giving it a star!
+
+---
+
+# 💾 Week 5 — Database Integration
+
+## Database Choice: MongoDB with Mongoose ODM
+
+**Why MongoDB?**
+- **Flexible schema** — guest review fields (theme, response, AI tags) evolve weekly without painful migrations
+- **JSON-native** — API already returns JSON; Mongoose documents map directly with zero transformation
+- **Mongoose ODM** — provides schema validation, virtual fields, timestamps out-of-the-box
+- **Free Atlas tier** — no infrastructure cost for a student project
+- **NeDB fallback** — server works offline with embedded file storage (same API, zero config needed)
+
+## Schema Diagram
+
+Review collection schema (see `server/models/Review.js`):
+
+```
+Collection: reviews
+┌─────────────────────────────────────────────────────────┐
+│ _id (ObjectId, PK)      Primary key                     │
+│ guestName (String)*     Required, max 100 chars         │
+│ rating (Number)*        Required, min 1, max 5          │
+│ review (String)*        Required, max 2000 chars        │
+│ sentiment (String)      enum: Positive|Neutral|Negative │
+│ theme (String)          e.g. Food, Spa, Location        │
+│ response (String)       Staff reply text                 │
+│ createdAt (Date)        auto-populated (timestamps)      │
+│ updatedAt (Date)        auto-populated (timestamps)      │
+└─────────────────────────────────────────────────────────┘
+* = required field, with validation
+```
+
+## Set Up the Database
+
+### Option 1: MongoDB Atlas (Cloud)
+
+1. Create a free cluster at https://www.mongodb.com/cloud/atlas
+2. Get your connection string: `mongodb+srv://username:password@cluster.mongodb.net/himalayan`
+3. Add it to `server/.env`:
+   ```
+   MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/himalayan?retryWrites=true&w=majority
+   ```
+4. Restart the server — it will auto-connect
+
+### Option 2: Embedded NeDB (Local, No Setup)
+
+Leave `MONGO_URI` blank or unset in `server/.env`. The server automatically:
+- Creates an embedded NeDB store (`server/db/reviews.db`)
+- Seeds 8 sample reviews on first run
+- Supports all 6+ CRUD endpoints identically
+
+Both modes use the **same Mongoose schema** and **same API** — seamless fallback.
+
+### Verification
+
+```bash
+# Fetch all reviews from the DB (MongoDB or NeDB, same API)
+curl http://localhost:5000/api/reviews
+
+# Create a new review (persisted to DB)
+curl -X POST http://localhost:5000/api/reviews \
+  -H "Content-Type: application/json" \
+  -d '{"guestName":"Test Guest","rating":5,"review":"Amazing!","theme":"Food","sentiment":"Positive"}'
+
+# Update a review
+curl -X PUT http://localhost:5000/api/reviews/r1 \
+  -H "Content-Type: application/json" \
+  -d '{"guestName":"Updated Name","rating":4}'
+
+# Delete a review
+curl -X DELETE http://localhost:5000/api/reviews/r1
+
+# Stats (computed from DB)
+curl http://localhost:5000/api/stats
+```
+
+All data is **persisted** to the database (not in-memory), survives server restarts, and supports concurrent updates.
+

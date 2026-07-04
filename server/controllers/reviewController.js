@@ -1,178 +1,110 @@
-const { reviews, generateId } = require("../data/reviews");
+/**
+ * Review Controller — Week 5 Database Integration
+ * All endpoints now read/write from the real database.
+ * Uses Mongoose when MONGO_URI is set, NeDB otherwise.
+ */
 
-// helper to auto-detect sentiment from rating if not provided
-function detectSentiment(rating) {
-  if (rating >= 4) return "Positive";
-  if (rating === 3) return "Neutral";
-  return "Negative";
-}
+const Review = require("../models/Review");
+const { getNeDB, getDBType } = require("../db/connection");
 
-// GET /api/reviews
-const getAllReviews = (req, res, next) => {
-  try {
-    res.status(200).json({
-      success: true,
-      count: reviews.length,
-      data: reviews,
-    });
-  } catch (err) {
-    next(err);
-  }
+const useMongo = () => getDBType() === "mongo";
+
+const normaliseNeDB = (doc) => {
+  if (!doc) return null;
+  const { _id, ...rest } = doc;
+  return { id: _id, ...rest };
 };
 
-// GET /api/reviews/search?q=
-// NOTE: this route must be registered BEFORE /:id in the router
-const searchReviews = (req, res, next) => {
+const getAllReviews = async (req, res, next) => {
   try {
-    const q = req.query.q;
-
-    if (!q || q.trim() === "") {
-      return res.status(400).json({
-        success: false,
-        error: "Search query 'q' is required",
-      });
+    let reviews;
+    if (useMongo()) {
+      reviews = await Review.find().sort({ createdAt: -1 });
+    } else {
+      const docs = await getNeDB().find({});
+      reviews = docs.map(normaliseNeDB);
     }
-
-    const query = q.toLowerCase().trim();
-
-    const results = reviews.filter(
-      (r) =>
-        r.review.toLowerCase().includes(query) ||
-        r.guestName.toLowerCase().includes(query) ||
-        r.theme.toLowerCase().includes(query) ||
-        r.sentiment.toLowerCase().includes(query)
-    );
-
-    res.status(200).json({
-      success: true,
-      count: results.length,
-      query: q,
-      data: results,
-    });
-  } catch (err) {
-    next(err);
-  }
+    res.status(200).json({ success: true, count: reviews.length, data: reviews });
+  } catch (err) { next(err); }
 };
 
-// GET /api/reviews/:id
-const getReviewById = (req, res, next) => {
+const searchReviews = async (req, res, next) => {
+  const q = (req.query.q || "").trim();
+  if (!q) return res.status(400).json({ success: false, error: 'Query parameter "q" is required' });
   try {
-    const review = reviews.find((r) => r.id === req.params.id);
-
-    if (!review) {
-      return res.status(404).json({
-        success: false,
-        error: `Review with id '${req.params.id}' not found`,
-      });
+    let results;
+    if (useMongo()) {
+      const regex = new RegExp(q, "i");
+      results = await Review.find({ $or: [{ guestName: regex }, { review: regex }, { theme: regex }, { sentiment: regex }] });
+    } else {
+      const regex = new RegExp(q, "i");
+      const docs = await getNeDB().find({ $or: [{ guestName: { $regex: regex } }, { review: { $regex: regex } }, { theme: { $regex: regex } }, { sentiment: { $regex: regex } }] });
+      results = docs.map(normaliseNeDB);
     }
-
-    res.status(200).json({
-      success: true,
-      data: review,
-    });
-  } catch (err) {
-    next(err);
-  }
+    res.status(200).json({ success: true, count: results.length, data: results });
+  } catch (err) { next(err); }
 };
 
-// POST /api/reviews
-const createReview = (req, res, next) => {
+const getReviewById = async (req, res, next) => {
   try {
-    const { guestName, rating, review, theme, response } = req.body;
-
-    const ratingNum = Number(rating);
-
-    const newReview = {
-      id: generateId(),
-      guestName: guestName.trim(),
-      rating: ratingNum,
-      sentiment: req.body.sentiment || detectSentiment(ratingNum),
-      theme: theme || "General",
-      review: review.trim(),
-      response: response || "",
-      date: new Date().toISOString().split("T")[0],
-    };
-
-    reviews.push(newReview);
-
-    res.status(201).json({
-      success: true,
-      message: "Review created successfully",
-      data: newReview,
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-// PUT /api/reviews/:id
-const updateReview = (req, res, next) => {
-  try {
-    const index = reviews.findIndex((r) => r.id === req.params.id);
-
-    if (index === -1) {
-      return res.status(404).json({
-        success: false,
-        error: `Review with id '${req.params.id}' not found`,
-      });
+    let review;
+    if (useMongo()) {
+      review = await Review.findById(req.params.id);
+    } else {
+      const doc = await getNeDB().findOne({ _id: req.params.id });
+      review = normaliseNeDB(doc);
     }
-
-    const existing = reviews[index];
-    const { guestName, rating, review, theme, sentiment, response } = req.body;
-
-    const ratingNum = rating !== undefined ? Number(rating) : existing.rating;
-
-    const updated = {
-      ...existing,
-      guestName: guestName ? guestName.trim() : existing.guestName,
-      rating: ratingNum,
-      sentiment: sentiment || detectSentiment(ratingNum),
-      theme: theme || existing.theme,
-      review: review ? review.trim() : existing.review,
-      response: response !== undefined ? response : existing.response,
-    };
-
-    reviews[index] = updated;
-
-    res.status(200).json({
-      success: true,
-      message: "Review updated successfully",
-      data: updated,
-    });
-  } catch (err) {
-    next(err);
-  }
+    if (!review) return res.status(404).json({ success: false, error: "Review not found" });
+    res.status(200).json({ success: true, data: review });
+  } catch (err) { next(err); }
 };
 
-// DELETE /api/reviews/:id
-const deleteReview = (req, res, next) => {
+const createReview = async (req, res, next) => {
   try {
-    const index = reviews.findIndex((r) => r.id === req.params.id);
-
-    if (index === -1) {
-      return res.status(404).json({
-        success: false,
-        error: `Review with id '${req.params.id}' not found`,
-      });
+    const { guestName, rating, review, theme, sentiment, response: resp } = req.body;
+    let created;
+    if (useMongo()) {
+      created = await Review.create({ guestName, rating, review, theme, sentiment, response: resp });
+    } else {
+      const now = new Date();
+      const doc = await getNeDB().insert({ guestName, rating: Number(rating), review, theme: theme || "General", sentiment: sentiment || "Neutral", response: resp || "", createdAt: now, updatedAt: now });
+      created = normaliseNeDB(doc);
     }
-
-    const deleted = reviews.splice(index, 1)[0];
-
-    res.status(200).json({
-      success: true,
-      message: "Review deleted successfully",
-      data: deleted,
-    });
-  } catch (err) {
-    next(err);
-  }
+    res.status(201).json({ success: true, data: created });
+  } catch (err) { next(err); }
 };
 
-module.exports = {
-  getAllReviews,
-  searchReviews,
-  getReviewById,
-  createReview,
-  updateReview,
-  deleteReview,
+const updateReview = async (req, res, next) => {
+  try {
+    let updated;
+    if (useMongo()) {
+      updated = await Review.findByIdAndUpdate(req.params.id, { ...req.body, updatedAt: new Date() }, { new: true, runValidators: true });
+    } else {
+      const existing = await getNeDB().findOne({ _id: req.params.id });
+      if (!existing) return res.status(404).json({ success: false, error: "Review not found" });
+      await getNeDB().update({ _id: req.params.id }, { $set: { ...req.body, updatedAt: new Date() } });
+      const doc = await getNeDB().findOne({ _id: req.params.id });
+      updated = normaliseNeDB(doc);
+    }
+    if (!updated) return res.status(404).json({ success: false, error: "Review not found" });
+    res.status(200).json({ success: true, data: updated });
+  } catch (err) { next(err); }
 };
+
+const deleteReview = async (req, res, next) => {
+  try {
+    let deleted;
+    if (useMongo()) {
+      deleted = await Review.findByIdAndDelete(req.params.id);
+    } else {
+      const doc = await getNeDB().findOne({ _id: req.params.id });
+      if (!doc) return res.status(404).json({ success: false, error: "Review not found" });
+      await getNeDB().remove({ _id: req.params.id });
+      deleted = normaliseNeDB(doc);
+    }
+    if (!deleted) return res.status(404).json({ success: false, error: "Review not found" });
+    res.status(200).json({ success: true, message: "Review deleted", data: deleted });
+  } catch (err) { next(err); }
+};
+
+module.exports = { getAllReviews, searchReviews, getReviewById, createReview, updateReview, deleteReview };
