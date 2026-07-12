@@ -573,3 +573,61 @@ curl http://localhost:5000/api/stats
 
 All data is **persisted** to the database (not in-memory), survives server restarts, and supports concurrent updates.
 
+
+---
+
+# 🔐 Week 6 — Authentication System
+
+## Overview
+
+Full JWT-based authentication with email/password and Google OAuth, rate limiting, and protected routes on both frontend and backend.
+
+## Auth Endpoints — `/api/auth`
+
+| Method | Endpoint | Description | Rate Limited |
+|--------|----------|--------------|--------------|
+| POST | `/api/auth/register` | Create account (name, email, password, role) | 10 / 15 min |
+| POST | `/api/auth/login` | Login, returns JWT | 5 / 15 min |
+| POST | `/api/auth/logout` | Clear auth cookie | — |
+| GET | `/api/auth/me` | Get current user (**protected**) | — |
+| GET | `/api/auth/google` | Start Google OAuth flow | — |
+| GET | `/api/auth/google/callback` | Google OAuth callback | — |
+
+## Protected Routes
+
+**Backend**: `POST/PUT/PATCH/DELETE /api/reviews*` and `GET /api/auth/me` require a valid JWT
+(`Authorization: Bearer <token>`). Missing/invalid tokens return `401 Unauthorized`.
+
+**Frontend**: `/dashboard` and `/analytics` are wrapped in `<ProtectedRoute>` — unauthenticated users
+are redirected to `/login`, then returned to the page they wanted after signing in.
+
+## Set Up Auth Locally
+
+1. Add to `server/.env` (see `.env.example`):
+   ```
+   JWT_SECRET=your_super_secret_jwt_key_change_in_production
+   JWT_EXPIRE=7d
+   GOOGLE_CLIENT_ID=your_google_client_id_here
+   GOOGLE_CLIENT_SECRET=your_google_client_secret_here
+   GOOGLE_CALLBACK_URL=http://localhost:5000/api/auth/google/callback
+   ```
+
+2. **For Google OAuth**, create an OAuth 2.0 Client ID at
+   [Google Cloud Console](https://console.cloud.google.com/apis/credentials) with:
+   - Authorized redirect URI: `http://localhost:5000/api/auth/google/callback`
+   - Scopes: `profile`, `email`
+
+3. Test:
+   ```bash
+   curl -X POST http://localhost:5000/api/auth/register \
+     -H "Content-Type: application/json" \
+     -d '{"name":"Test User","email":"test@example.com","password":"test123"}'
+
+   curl -X POST http://localhost:5000/api/auth/login \
+     -H "Content-Type: application/json" \
+     -d '{"email":"test@example.com","password":"test123"}'
+
+   curl http://localhost:5000/api/auth/me \
+     -H "Authorization: Bearer <token-from-login>"
+   ```
+
