@@ -631,3 +631,91 @@ are redirected to `/login`, then returned to the page they wanted after signing 
      -H "Authorization: Bearer <token-from-login>"
    ```
 
+
+---
+
+## 🚀 Deployment
+
+### Live URLs
+
+| Service | URL |
+|---------|-----|
+| **Frontend (Vercel)** | https://himalayan-guest-experience.vercel.app |
+| **Backend (Render)** | https://himalayan-backend.onrender.com |
+
+> **Note:** Replace the above URLs with your actual deployed URLs after deployment.
+
+---
+
+### 🖥️ Frontend Deployment (Vercel)
+
+1. Push this repo to GitHub (already done).
+2. Go to [vercel.com](https://vercel.com) → **New Project** → Import your GitHub repo.
+3. Set **Root Directory** to `client`.
+4. Add Environment Variable:
+   ```
+   VITE_API_URL = https://your-render-app.onrender.com/api
+   ```
+5. Click **Deploy**. Vercel auto-detects Vite and builds it.
+6. A `vercel.json` in `client/` handles SPA routing (all paths redirect to `index.html`).
+
+---
+
+### ⚙️ Backend Deployment (Render)
+
+1. Go to [render.com](https://render.com) → **New Web Service** → Connect your GitHub repo.
+2. Set:
+   - **Root Directory:** `server`
+   - **Build Command:** `npm install`
+   - **Start Command:** `npm start`
+3. Add the following Environment Variables in Render dashboard:
+
+   | Variable | Value |
+   |----------|-------|
+   | `NODE_ENV` | `production` |
+   | `PORT` | `10000` |
+   | `MONGO_URI` | Your MongoDB Atlas connection string |
+   | `JWT_SECRET` | A long random secret string |
+   | `JWT_EXPIRES_IN` | `7d` |
+   | `OPENAI_API_KEY` | Your OpenAI API key |
+   | `CLIENT_URL` | Your Vercel frontend URL |
+   | `GOOGLE_CLIENT_ID` | From Google Cloud Console |
+   | `GOOGLE_CLIENT_SECRET` | From Google Cloud Console |
+   | `GOOGLE_CALLBACK_URL` | `https://your-render-app.onrender.com/api/auth/google/callback` |
+
+4. A `render.yaml` in the project root pre-configures the service.
+
+---
+
+### 🗄️ Database Setup (MongoDB Atlas)
+
+1. Create a free cluster at [mongodb.com/atlas](https://www.mongodb.com/atlas).
+2. Add a database user and whitelist `0.0.0.0/0` (all IPs) for Render.
+3. Copy the connection string and set it as `MONGO_URI` in Render.
+4. If `MONGO_URI` is not set, the app automatically falls back to an embedded **NeDB** file-based store (data persists on disk but resets on Render free-tier redeploys).
+
+---
+
+### 🧰 Tech Stack Summary
+
+| Layer | Technology |
+|-------|-----------|
+| **Frontend** | React 19, Vite, Tailwind CSS, React Router, Recharts, Axios |
+| **Backend** | Node.js, Express.js, REST API |
+| **AI** | OpenAI GPT-4o (sentiment, themes, response generation) |
+| **Database** | MongoDB Atlas (production) / NeDB (fallback/dev) |
+| **Auth** | JWT (email/password) + Google OAuth 2.0 (Passport.js) |
+| **Deployment** | Vercel (frontend) + Render (backend) |
+
+---
+
+### ⚠️ Known Limitations on Free Tier
+
+| Limitation | Detail |
+|------------|--------|
+| **Render cold starts** | The free tier spins down after 15 minutes of inactivity. The **first request after idle takes 30–60 seconds** to wake up. Subsequent requests are fast. |
+| **NeDB fallback** | If `MONGO_URI` is not configured, data is stored in a local `.db` file. On Render's free tier, this file is **wiped on every redeploy** — use MongoDB Atlas for persistent data. |
+| **OpenAI rate limits** | The free/trial OpenAI tier has low rate limits. Batch-analyzing many reviews at once may hit a `429 Too Many Requests` error. |
+| **Vercel function timeout** | Vercel serverless functions time out at 10s on the hobby plan — not an issue here since the frontend is purely static. |
+| **Google OAuth callback** | Must update `GOOGLE_CALLBACK_URL` env var on Render to match the live domain after first deploy. |
+
