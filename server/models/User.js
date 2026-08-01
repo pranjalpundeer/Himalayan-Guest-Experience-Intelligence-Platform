@@ -16,14 +16,10 @@ const userSchema = new mongoose.Schema(
   { timestamps: true, toJSON: { virtuals: true } }
 );
 
-userSchema.pre("save", async function (next) {
-  try {
-    if (!this.isModified("password") || !this.password) return next();
-    this.password = await bcrypt.hash(this.password, 12);
-    return next();
-  } catch (err) {
-    return next(err);
-  }
+// Mongoose 9 - async pre hooks don't need next()
+userSchema.pre("save", async function () {
+  if (!this.isModified("password") || !this.password) return;
+  this.password = await bcrypt.hash(this.password, 12);
 });
 
 userSchema.methods.matchPassword = async function (entered) {
