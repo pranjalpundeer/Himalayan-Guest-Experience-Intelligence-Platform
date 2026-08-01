@@ -6,9 +6,8 @@ const passport = require("../passport");
 const { register, login, logout, getMe, googleCallback } = require("../controllers/authController");
 const { protect } = require("../middleware/auth");
 
-// ── Rate Limiters ─────────────────────────────────────────────────────────────
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 15 * 60 * 1000,
   max: 10,
   message: { success: false, error: "Too many attempts. Please try again after 15 minutes." },
   standardHeaders: true,
@@ -23,7 +22,6 @@ const loginLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// ── Validation Rules ──────────────────────────────────────────────────────────
 const registerValidation = [
   body("name").trim().notEmpty().withMessage("Name is required").isLength({ max: 100 }),
   body("email").isEmail().withMessage("Valid email is required").normalizeEmail(),
@@ -44,27 +42,36 @@ const validate = (req, res, next) => {
   next();
 };
 
-// ── Auth Routes ───────────────────────────────────────────────────────────────
 router.post("/register", authLimiter, registerValidation, validate, register);
 router.post("/login",    loginLimiter, loginValidation,    validate, login);
 router.post("/logout",   logout);
 router.get("/me",        protect, getMe);
 
-// ── Google OAuth ──────────────────────────────────────────────────────────────
 router.get("/google",
   passport.authenticate("google", { scope: ["profile", "email"], session: false })
 );
 
-router.get("/google/callback",
-  (req, res, next) => {
-    passport.authenticate("google", { session: false }, (err, user) => {
-      const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
-      if (err || !user) return res.redirect(`${clientUrl}/login?error=oauth_failed`);
-      req.user = user;
-      next();
-    })(req, res, next);
-  },
-  googleCallback
-);
+router.get("/google/callback", (req, res) => {
+  const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
+  passport.authenticate("google", { session: false }, (err, user, info) => {
+    console.log("Google OAuth callback - err:", err, "user:", user ? user.email : null, "info:", info);
+    if (err) {
+      console.error("OAuth error:", err);
+      return res.redirect(`${clientUrl}/login?error=oauth_failed`);
+    }
+    if (!user) {
+      console.error("OAuth no user:", info);
+      return res.redirect(`${clientUrl}/login?error=oauth_failed`);
+    }
+    try {
+      const jwt = require("jsonwebtoken");
+      const token = jwt.sign({ id: user._id || user.id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || "7d" });
+      return res.redirect(`${clientUrl}/dashboard?oauth=success&token=${token}`);
+    } catch (e) {
+      console.error("Token error:", e);
+      return res.redirect(`${clientUrl}/login?error=oauth_failed`);
+    }
+  })(req, res);
+});
 
 module.exports = router;
