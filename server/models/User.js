@@ -3,7 +3,6 @@ const bcrypt = require("bcryptjs");
 const Datastore = require("nedb-promises");
 const path = require("path");
 
-// ── Mongoose Schema ───────────────────────────────────────────────────────────
 const userSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true, maxlength: 100 },
@@ -18,16 +17,19 @@ const userSchema = new mongoose.Schema(
 );
 
 userSchema.pre("save", async function (next) {
-  if (!this.isModified("password") || !this.password) return next();
-  this.password = await bcrypt.hash(this.password, 12);
-  next();
+  try {
+    if (!this.isModified("password") || !this.password) return next();
+    this.password = await bcrypt.hash(this.password, 12);
+    return next();
+  } catch (err) {
+    return next(err);
+  }
 });
 
 userSchema.methods.matchPassword = async function (entered) {
   return await bcrypt.compare(entered, this.password);
 };
 
-// ── NeDB fallback store ───────────────────────────────────────────────────────
 let nedbUsers = null;
 const getUsersDB = () => {
   if (!nedbUsers) {
