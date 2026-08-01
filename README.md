@@ -640,8 +640,8 @@ are redirected to `/login`, then returned to the page they wanted after signing 
 
 | Service | URL |
 |---------|-----|
-| **Frontend (Vercel)** | https://himalayan-guest-experience.vercel.app |
-| **Backend (Render)** | https://himalayan-backend.onrender.com |
+| **Frontend (Vercel)** | https://himalayan-app-pranjal.vercel.app |
+| **Backend (Render)** | https://himalayan-guest-experience-intelligence.onrender.com |
 
 > **Note:** Replace the above URLs with your actual deployed URLs after deployment.
 
