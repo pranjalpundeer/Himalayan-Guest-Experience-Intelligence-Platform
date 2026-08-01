@@ -1,6 +1,5 @@
 const passport = require("passport");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
-const bcrypt = require("bcryptjs");
 const { getDBType } = require("./db/connection");
 const { UserMongoose, getUsersDB } = require("./models/User");
 
@@ -18,10 +17,13 @@ passport.use(
         const googleId = profile.id;
         const avatar = profile.photos?.[0]?.value || "";
 
+        if (!email) return done(new Error("No email from Google"), null);
+
         if (getDBType() === "mongo") {
           let user = await UserMongoose.findOne({ $or: [{ googleId }, { email }] });
           if (!user) {
-            user = await UserMongoose.create({ name, email, googleId, avatar, isVerified: true, role: "guest" });
+            user = new UserMongoose({ name, email, googleId, avatar, isVerified: true, role: "guest" });
+            await user.save();
           } else if (!user.googleId) {
             user.googleId = googleId;
             user.avatar = avatar;
@@ -37,6 +39,7 @@ passport.use(
           return done(null, user);
         }
       } catch (err) {
+        console.error("Passport Google strategy error:", err);
         return done(err, null);
       }
     }
