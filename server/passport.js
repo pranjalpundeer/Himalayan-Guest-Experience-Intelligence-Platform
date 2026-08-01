@@ -43,14 +43,7 @@ passport.use(
   )
 );
 
-passport.serializeUser((user, done) => done(null, user._id || user.id));
-passport.deserializeUser(async (id, done) => {
-  try {
-    const user = getDBType() === "mongo"
-      ? await UserMongoose.findById(id)
-      : await getUsersDB().findOne({ _id: id });
-    done(null, user);
-  } catch (err) { done(err, null); }
-});
+passport.serializeUser((user, done) => done(null, user));
+passport.deserializeUser((user, done) => done(null, user));
 
 module.exports = passport;
