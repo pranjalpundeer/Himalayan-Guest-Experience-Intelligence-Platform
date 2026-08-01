@@ -643,7 +643,7 @@ are redirected to `/login`, then returned to the page they wanted after signing 
 | **Frontend (Vercel)** | https://himalayan-app-pranjal.vercel.app |
 | **Backend (Render)** | https://himalayan-guest-experience-intelligence.onrender.com |
 
-> **Note:** Replace the above URLs with your actual deployed URLs after deployment.
+> ✅ Both services are live and fully deployed.
 
 ---
 
