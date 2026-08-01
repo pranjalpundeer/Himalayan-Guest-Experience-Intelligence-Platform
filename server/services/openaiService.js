@@ -1,29 +1,13 @@
 /**
- * OpenAI Service
- * Handles all interactions with the OpenAI API
+ * AI Service - Uses Google Gemini API (free tier)
  */
 
-const OpenAI = require('openai');
-
-// Initialize OpenAI client
-const getOpenAIClient = () => {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error('OPENAI_API_KEY is not set in environment variables');
-  }
-  return new OpenAI({ apiKey });
-};
-
-/**
- * Analyzes a single guest review using OpenAI
- * @param {string} review - The guest review text
- * @returns {Promise<Object>} Parsed analysis result
- */
 const analyzeReview = async (review) => {
-  const client = getOpenAIClient();
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error("GEMINI_API_KEY is not set");
 
-  const systemPrompt = `You are an expert hospitality analyst for a luxury Himalayan hotel brand.
-Your job is to analyze guest reviews and return ONLY a valid JSON object — no markdown, no explanation, no code fences.
+  const prompt = `You are an expert hospitality analyst for a luxury Himalayan hotel brand.
+Analyze this guest review and return ONLY a valid JSON object — no markdown, no explanation, no code fences.
 
 Rules:
 - "sentiment" must be exactly one of: "Positive", "Neutral", "Negative"
@@ -37,74 +21,62 @@ JSON format:
   "sentiment": "<Positive|Neutral|Negative>",
   "theme": "<Food|Host|Location|Cleanliness|Value|Experience>",
   "response": "<professional one-line management reply>"
-}`;
+}
 
-  const userPrompt = `Analyze this guest review and return only valid JSON:
+Guest review: "${review}"`;
 
-"${review}"`;
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.3, maxOutputTokens: 300 },
+      }),
+    }
+  );
 
-  const completion = await client.chat.completions.create({
-    model: 'gpt-3.5-turbo',
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userPrompt },
-    ],
-    temperature: 0.3,
-    max_tokens: 300,
-  });
-
-  const rawText = completion.choices[0]?.message?.content?.trim();
-  if (!rawText) {
-    throw new Error('Empty response from OpenAI');
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`Gemini API error: ${err}`);
   }
 
-  // Strip markdown fences if model includes them despite instructions
-  const cleaned = rawText.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+  const data = await response.json();
+  const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+  if (!rawText) throw new Error("Empty response from Gemini");
+
+  const cleaned = rawText.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
 
   let parsed;
   try {
     parsed = JSON.parse(cleaned);
   } catch (e) {
-    throw new Error(`Failed to parse OpenAI response as JSON: ${cleaned}`);
+    throw new Error(`Failed to parse Gemini response as JSON: ${cleaned}`);
   }
 
-  // Validate required fields
-  const validSentiments = ['Positive', 'Neutral', 'Negative'];
-  const validThemes = ['Food', 'Host', 'Location', 'Cleanliness', 'Value', 'Experience'];
+  const validSentiments = ["Positive", "Neutral", "Negative"];
+  const validThemes = ["Food", "Host", "Location", "Cleanliness", "Value", "Experience"];
 
-  if (!validSentiments.includes(parsed.sentiment)) {
-    parsed.sentiment = 'Neutral'; // fallback
-  }
-  if (!validThemes.includes(parsed.theme)) {
-    parsed.theme = 'Experience'; // fallback
-  }
+  if (!validSentiments.includes(parsed.sentiment)) parsed.sentiment = "Neutral";
+  if (!validThemes.includes(parsed.theme)) parsed.theme = "Experience";
 
   return {
-    review: review,
+    review,
     sentiment: parsed.sentiment,
     theme: parsed.theme,
-    response: parsed.response || 'Thank you for your valuable feedback. We will use it to improve our services.',
+    response: parsed.response || "Thank you for your valuable feedback.",
   };
 };
 
-/**
- * Analyzes multiple reviews in parallel
- * @param {string[]} reviews - Array of review strings
- * @returns {Promise<Object[]>} Array of analysis results
- */
 const analyzeReviews = async (reviews) => {
-  // Process reviews in parallel with a concurrency limit of 5
   const CONCURRENCY = 5;
   const results = [];
-
   for (let i = 0; i < reviews.length; i += CONCURRENCY) {
     const batch = reviews.slice(i, i + CONCURRENCY);
-    const batchResults = await Promise.all(
-      batch.map((review) => analyzeReview(review))
-    );
+    const batchResults = await Promise.all(batch.map((r) => analyzeReview(r)));
     results.push(...batchResults);
   }
-
   return results;
 };
 
