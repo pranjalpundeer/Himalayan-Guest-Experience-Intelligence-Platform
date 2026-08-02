@@ -80,7 +80,7 @@ const CinematicIntro = ({ onEnter }) => {
 
         {/* Top subtitle */}
         <p style={{
-          color: "rgba(200,220,255,0.75)",
+          color: "rgba(255,255,255,0.5)",
           fontSize: "clamp(0.55rem, 1.1vw, 0.78rem)",
           letterSpacing: "0.45em",
           textTransform: "uppercase",
@@ -94,21 +94,21 @@ const CinematicIntro = ({ onEnter }) => {
 
         {/* Main title */}
         <h1 style={{
-          color: "#ffffff",
+          color: "rgba(255,255,255,0.92)",
           fontSize: "clamp(1.6rem, 4.5vw, 3.4rem)",
           fontWeight: 300,
           letterSpacing: "0.1em",
           textAlign: "center",
           lineHeight: 1.35,
           margin: 0,
-          textShadow: "0 2px 40px rgba(0,0,0,0.9), 0 0 80px rgba(80,140,255,0.25)",
+          textShadow: "0 2px 40px rgba(0,0,0,0.9)",
           opacity: showText ? 1 : 0,
           transform: showText ? "translateY(0)" : "translateY(22px)",
           transition: "opacity 2.5s ease 0.4s, transform 2.5s ease 0.4s",
         }}>
           Himalayan Guest Experience<br />
           <span style={{
-            color: "#90bef5",
+            color: "rgba(255,255,255,0.6)",
             fontStyle: "italic",
             fontWeight: 300,
           }}>
@@ -118,7 +118,7 @@ const CinematicIntro = ({ onEnter }) => {
 
         {/* Tagline */}
         <p style={{
-          color: "rgba(170,200,240,0.65)",
+          color: "rgba(255,255,255,0.4)",
           fontSize: "clamp(0.6rem, 1vw, 0.75rem)",
           letterSpacing: "0.28em",
           textTransform: "uppercase",
@@ -128,6 +128,22 @@ const CinematicIntro = ({ onEnter }) => {
           transition: "opacity 2s ease 1s, transform 2s ease 1s",
         }}>
           AI · Sentiment · Themes · Insights
+        </p>
+
+        {/* Creator name */}
+        <p style={{
+          color: "rgba(255,255,255,0.35)",
+          fontSize: "clamp(0.5rem, 0.85vw, 0.65rem)",
+          letterSpacing: "0.3em",
+          textTransform: "uppercase",
+          margin: 0,
+          fontFamily: "'Georgia', serif",
+          fontStyle: "italic",
+          opacity: showText ? 1 : 0,
+          transform: showText ? "translateY(0)" : "translateY(10px)",
+          transition: "opacity 2s ease 1.4s, transform 2s ease 1.4s",
+        }}>
+          by Pranjal Pundeer
         </p>
 
         {/* Divider line */}
