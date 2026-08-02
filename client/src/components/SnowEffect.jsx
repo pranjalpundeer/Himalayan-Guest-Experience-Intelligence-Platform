@@ -9,92 +9,126 @@ const SnowEffect = () => {
     const w = window.innerWidth;
     const h = window.innerHeight;
 
-    // Scene
+    // Scene setup
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, w / h, 0.1, 1000);
-    camera.position.z = 5;
+    scene.fog = new THREE.FogExp2(0x000000, 0.035); // depth fog for 3D depth
+
+    const camera = new THREE.PerspectiveCamera(90, w / h, 0.1, 200);
+    camera.position.z = 0;
 
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
     renderer.setSize(w, h);
     renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setClearColor(0x000000, 0); // transparent background
+    renderer.setClearColor(0x000000, 0);
     mount.appendChild(renderer.domElement);
 
-    // Snow particles
-    const PARTICLE_COUNT = 600;
-    const positions = new Float32Array(PARTICLE_COUNT * 3);
-    const velocities = [];
-
-    for (let i = 0; i < PARTICLE_COUNT; i++) {
-      positions[i * 3]     = (Math.random() - 0.5) * 20; // x
-      positions[i * 3 + 1] = (Math.random() - 0.5) * 20; // y
-      positions[i * 3 + 2] = (Math.random() - 0.5) * 10; // z
-      velocities.push({
-        x: (Math.random() - 0.5) * 0.005,
-        y: -(Math.random() * 0.02 + 0.005),
-        drift: Math.random() * Math.PI * 2,
-        driftSpeed: Math.random() * 0.01 + 0.003,
-        size: Math.random() * 0.8 + 0.2,
-      });
-    }
-
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-
-    // Circular snowflake texture
+    // Snowflake texture
     const canvas = document.createElement("canvas");
-    canvas.width = 64; canvas.height = 64;
+    canvas.width = 128; canvas.height = 128;
     const ctx = canvas.getContext("2d");
-    const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
-    gradient.addColorStop(0, "rgba(255,255,255,1)");
-    gradient.addColorStop(0.4, "rgba(220,240,255,0.8)");
-    gradient.addColorStop(1, "rgba(200,230,255,0)");
-    ctx.fillStyle = gradient;
+    const grad = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+    grad.addColorStop(0,   "rgba(255,255,255,1)");
+    grad.addColorStop(0.2, "rgba(220,240,255,0.95)");
+    grad.addColorStop(0.5, "rgba(200,230,255,0.6)");
+    grad.addColorStop(1,   "rgba(180,220,255,0)");
+    ctx.fillStyle = grad;
     ctx.beginPath();
-    ctx.arc(32, 32, 32, 0, Math.PI * 2);
+    ctx.arc(64, 64, 64, 0, Math.PI * 2);
     ctx.fill();
-    const texture = new THREE.CanvasTexture(canvas);
+    const flakeTexture = new THREE.CanvasTexture(canvas);
 
-    const material = new THREE.PointsMaterial({
-      size: 0.12,
-      map: texture,
-      transparent: true,
-      opacity: 0.75,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
-      vertexColors: false,
-      color: 0xddeeff,
+    // Create 3 layers of snow — near, mid, far
+    const layers = [
+      { count: 300, zMin: -5,   zMax: 5,   size: 0.35, speed: 0.08, opacity: 0.95, drift: 0.012 },
+      { count: 500, zMin: -30,  zMax: -5,  size: 0.18, speed: 0.045, opacity: 0.7, drift: 0.007 },
+      { count: 800, zMin: -100, zMax: -30, size: 0.08, speed: 0.02,  opacity: 0.4, drift: 0.003 },
+    ];
+
+    const particleSystems = [];
+
+    layers.forEach(({ count, zMin, zMax, size, speed, opacity, drift }) => {
+      const positions = new Float32Array(count * 3);
+      const meta = [];
+
+      for (let i = 0; i < count; i++) {
+        const z = zMin + Math.random() * (zMax - zMin);
+        // Spread x/y based on depth so it fills the FOV
+        const spread = Math.abs(z) * 1.2 + 5;
+        positions[i * 3]     = (Math.random() - 0.5) * spread * 2;
+        positions[i * 3 + 1] = (Math.random() - 0.5) * spread * 2;
+        positions[i * 3 + 2] = z;
+        meta.push({
+          vy: -(speed * (0.5 + Math.random())),
+          vx: (Math.random() - 0.5) * drift,
+          driftPhase: Math.random() * Math.PI * 2,
+          driftFreq:  0.003 + Math.random() * 0.004,
+          driftAmp:   drift * (0.5 + Math.random()),
+        });
+      }
+
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+
+      const mat = new THREE.PointsMaterial({
+        size,
+        map: flakeTexture,
+        transparent: true,
+        opacity,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        color: 0xddeeff,
+      });
+
+      const pts = new THREE.Points(geo, mat);
+      scene.add(pts);
+      particleSystems.push({ pts, geo, meta, count, zMin, zMax, speed });
     });
 
-    const particles = new THREE.Points(geometry, material);
-    scene.add(particles);
+    // Mouse parallax
+    let mouseX = 0, mouseY = 0;
+    const onMouseMove = (e) => {
+      mouseX = (e.clientX / window.innerWidth  - 0.5) * 0.3;
+      mouseY = (e.clientY / window.innerHeight - 0.5) * 0.15;
+    };
+    window.addEventListener("mousemove", onMouseMove);
 
-    // Animation
     let animId;
-    const pos = geometry.attributes.position.array;
+    let t = 0;
 
     const animate = () => {
       animId = requestAnimationFrame(animate);
-      for (let i = 0; i < PARTICLE_COUNT; i++) {
-        const v = velocities[i];
-        v.drift += v.driftSpeed;
-        pos[i * 3]     += v.x + Math.sin(v.drift) * 0.003;
-        pos[i * 3 + 1] += v.y;
-        pos[i * 3 + 2] += 0;
+      t += 0.016;
 
-        // Reset if fallen below screen
-        if (pos[i * 3 + 1] < -10) {
-          pos[i * 3]     = (Math.random() - 0.5) * 20;
-          pos[i * 3 + 1] = 10;
-          pos[i * 3 + 2] = (Math.random() - 0.5) * 10;
+      // Subtle camera sway following mouse
+      camera.position.x += (mouseX - camera.position.x) * 0.03;
+      camera.position.y += (-mouseY - camera.position.y) * 0.03;
+      camera.lookAt(camera.position.x * 0.5, camera.position.y * 0.5, -50);
+
+      particleSystems.forEach(({ geo, meta, count, zMin, zMax }) => {
+        const pos = geo.attributes.position.array;
+        for (let i = 0; i < count; i++) {
+          const m = meta[i];
+          m.driftPhase += m.driftFreq;
+
+          pos[i * 3]     += m.vx + Math.sin(m.driftPhase) * m.driftAmp;
+          pos[i * 3 + 1] += m.vy;
+
+          // Reset snowflake when it falls out of view
+          if (pos[i * 3 + 1] < -60) {
+            const z = pos[i * 3 + 2];
+            const spread = Math.abs(z) * 1.2 + 5;
+            pos[i * 3]     = (Math.random() - 0.5) * spread * 2;
+            pos[i * 3 + 1] = 60;
+          }
         }
-      }
-      geometry.attributes.position.needsUpdate = true;
+        geo.attributes.position.needsUpdate = true;
+      });
+
       renderer.render(scene, camera);
     };
     animate();
 
-    // Resize handler
+    // Resize
     const onResize = () => {
       const nw = window.innerWidth;
       const nh = window.innerHeight;
@@ -106,14 +140,15 @@ const SnowEffect = () => {
 
     return () => {
       cancelAnimationFrame(animId);
+      window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("resize", onResize);
-      geometry.dispose();
-      material.dispose();
-      texture.dispose();
+      particleSystems.forEach(({ geo, pts }) => {
+        geo.dispose();
+        pts.material.dispose();
+      });
+      flakeTexture.dispose();
       renderer.dispose();
-      if (mount.contains(renderer.domElement)) {
-        mount.removeChild(renderer.domElement);
-      }
+      if (mount.contains(renderer.domElement)) mount.removeChild(renderer.domElement);
     };
   }, []);
 
