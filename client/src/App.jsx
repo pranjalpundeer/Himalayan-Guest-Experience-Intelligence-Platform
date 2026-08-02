@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -8,12 +9,24 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import ComponentShowcase from './pages/ComponentShowcase';
 import ProtectedRoute from './components/ProtectedRoute';
-import SnowEffect from './components/SnowEffect';
+import CinematicIntro from './components/CinematicIntro';
 
 function App() {
+  const [introDone, setIntroDone] = useState(
+    () => sessionStorage.getItem("intro_done") === "true"
+  );
+
+  const handleEnter = () => {
+    sessionStorage.setItem("intro_done", "true");
+    setIntroDone(true);
+  };
+
+  if (!introDone) {
+    return <CinematicIntro onEnter={handleEnter} />;
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-himalaya-snow dark:bg-himalaya-slate transition-colors duration-200">
-      <SnowEffect />
       <Navbar />
       <main className="flex-1">
         <Routes>
