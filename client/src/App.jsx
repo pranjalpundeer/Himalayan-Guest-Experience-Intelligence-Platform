@@ -10,6 +10,7 @@ import Register from './pages/Register';
 import ComponentShowcase from './pages/ComponentShowcase';
 import ProtectedRoute from './components/ProtectedRoute';
 import CinematicIntro from './components/CinematicIntro';
+import ParallaxBackground from './components/ParallaxBackground';
 
 function App() {
   const [introDone, setIntroDone] = useState(
@@ -21,14 +22,17 @@ function App() {
     setIntroDone(true);
   };
 
-  if (!introDone) {
-    return <CinematicIntro onEnter={handleEnter} />;
-  }
+  if (!introDone) return <CinematicIntro onEnter={handleEnter} />;
 
   return (
-    <div className="min-h-screen flex flex-col bg-himalaya-snow dark:bg-himalaya-slate transition-colors duration-200">
+    <div className="min-h-screen flex flex-col transition-colors duration-200"
+      style={{ position:"relative", zIndex:1 }}>
+
+      {/* Global 3D parallax background — sits behind everything */}
+      <ParallaxBackground />
+
       <Navbar />
-      <main className="flex-1">
+      <main className="flex-1" style={{ position:"relative", zIndex:2 }}>
         <Routes>
           <Route path="/"           element={<Home />} />
           <Route path="/about"      element={<About />} />
@@ -39,7 +43,7 @@ function App() {
           <Route path="/analytics"  element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         </Routes>
       </main>
-      <Footer />
+      <Footer style={{ position:"relative", zIndex:2 }} />
     </div>
   );
 }
