@@ -1,238 +1,195 @@
-/**
- * Home Page
- * Hero + Features grid + AI Review Analyzer preview section.
- * The preview section calls the REAL /api/analyze endpoint — no mock data.
- */
-
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import Hero from '../components/Hero';
-import FeatureCard from '../components/FeatureCard';
-import SectionTitle from '../components/SectionTitle';
-import Badge from '../components/Badge';
-import { Input, Button } from '../components/ui';
-import { FEATURES } from '../data/sampleData';          // only static marketing copy
 import { analyzeReviews } from '../utils/api';
-import { SENTIMENT_ICON, THEME_ICON, sentimentVariant } from '../utils/reviewMeta';
+import { SENTIMENT_ICON, THEME_ICON } from '../utils/reviewMeta';
 
-const EXAMPLE_TEXT = `Amazing food and very friendly staff. Highly recommend!
-Rooms were clean but breakfast was average and nothing special.
-The washroom was dirty and service was slow throughout our stay.
-Stunning mountain views from our room. Absolutely breathtaking experience.`;
+const EXAMPLE_TEXT = `Amazing food and very friendly staff. Highly recommend!\nRooms were clean but breakfast was average and nothing special.\nThe washroom was dirty and service was slow throughout our stay.\nStunning mountain views from our room. Absolutely breathtaking experience.`;
+
+const FEATURES = [
+  { icon:'🧠', title:'Sentiment Analysis', desc:'Classify every review as Positive, Neutral, or Negative using advanced AI — in under 3 seconds.' },
+  { icon:'🏷', title:'Theme Detection', desc:'Automatically categorise feedback by topic: Food, Host, Location, Cleanliness, Value, Experience.' },
+  { icon:'✍️', title:'Response Generation', desc:'Generate professional, brand-appropriate management responses for every piece of feedback.' },
+  { icon:'📊', title:'Analytics Dashboard', desc:'Visual breakdown of sentiment distribution, theme trends, and guest satisfaction over time.' },
+  { icon:'📥', title:'CSV Export', desc:'Download all analysed reviews with sentiment, theme and response data in one click.' },
+  { icon:'🔒', title:'Secure & Private', desc:'JWT authentication, Google OAuth, and encrypted data storage. Your guest data stays yours.' },
+];
+
+const RevealSection = ({ children, delay = 0 }) => {
+  const ref = useRef(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setVisible(true); obs.disconnect(); } }, { threshold: 0.1 });
+    if (ref.current) obs.observe(ref.current);
+    return () => obs.disconnect();
+  }, []);
+  return (
+    <div ref={ref} style={{
+      opacity: visible ? 1 : 0,
+      transform: visible ? 'translateY(0)' : 'translateY(30px)',
+      transition: `opacity 0.8s ease ${delay}ms, transform 0.8s ease ${delay}ms`,
+    }}>{children}</div>
+  );
+};
 
 const Home = () => {
-  const [previewText, setPreviewText] = useState('');
-  const [results, setResults]         = useState([]);
-  const [loading, setLoading]         = useState(false);
-  const [error, setError]             = useState('');
+  const [text, setText] = useState('');
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const previewCount = previewText.trim()
-    ? previewText.trim().split('\n').filter(l => l.trim()).length
-    : 0;
-
-  const handleAnalyzePreview = async () => {
-    const reviews = previewText.trim().split('\n').filter(l => l.trim());
+  const handleAnalyze = async () => {
+    const reviews = text.trim().split('\n').filter(l => l.trim());
     if (!reviews.length) return;
-    setLoading(true);
-    setError('');
-    setResults([]);
+    setLoading(true); setError(''); setResults([]);
     try {
       const data = await analyzeReviews(reviews);
       setResults(data.results ?? []);
     } catch (err) {
-      setError(
-        err.code === 'ERR_NETWORK'
-          ? 'Backend not running — start the server to see real AI results.'
-          : err.response?.data?.error || 'Analysis failed. Please try again.'
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleClear = () => {
-    setPreviewText('');
-    setResults([]);
-    setError('');
+      setError(err.response?.data?.error || 'Analysis failed.');
+    } finally { setLoading(false); }
   };
 
   return (
-    <>
+    <div style={{ background:'#070B14', minHeight:'100vh' }}>
       <Hero />
 
-      {/* ── Features Section ─────────────────────────────────── */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <SectionTitle
-          eyebrow="What We Do"
-          title="Everything You Need to Understand Your Guests"
-          subtitle="From raw review text to actionable intelligence — our platform handles the full analysis pipeline powered by OpenAI."
-        />
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* ── Features ─────────────────────────────────────────────────── */}
+      <section style={{ padding:'8rem 3rem', maxWidth:1280, margin:'0 auto' }}>
+        <RevealSection>
+          <div style={{ marginBottom:'5rem' }}>
+            <span className="eyebrow" style={{ display:'block', marginBottom:'1.5rem' }}>Platform Capabilities</span>
+            <h2 className="display" style={{ fontSize:'clamp(2rem,4vw,3.5rem)', color:'#F0EDE6', maxWidth:600 }}>
+              Everything you need to understand your guests
+            </h2>
+          </div>
+        </RevealSection>
+
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(320px, 1fr))', gap:'1px', background:'rgba(255,255,255,0.06)' }}>
           {FEATURES.map((f, i) => (
-            <FeatureCard key={f.title} delay={i * 80} {...f} />
+            <RevealSection key={f.title} delay={i * 60}>
+              <div style={{
+                padding:'2.5rem', background:'#070B14',
+                transition:'background 0.3s',
+              }}
+                onMouseEnter={e => e.currentTarget.style.background='rgba(75,159,213,0.04)'}
+                onMouseLeave={e => e.currentTarget.style.background='#070B14'}
+              >
+                <div style={{ fontSize:'1.5rem', marginBottom:'1.2rem' }}>{f.icon}</div>
+                <h3 style={{ fontFamily:"'Cormorant Garant',serif", fontSize:'1.25rem', color:'#F0EDE6', marginBottom:'0.75rem', fontWeight:400 }}>{f.title}</h3>
+                <p style={{ fontSize:'0.85rem', color:'rgba(240,237,230,0.4)', lineHeight:1.8 }}>{f.desc}</p>
+              </div>
+            </RevealSection>
           ))}
         </div>
       </section>
 
-      {/* ── AI Review Analyzer Preview (REAL API) ────────────── */}
-      <section className="py-20 bg-gradient-to-b from-white to-himalaya-mist/30 dark:from-himalaya-stone dark:to-himalaya-slate/50">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <SectionTitle
-            eyebrow="Try It Out"
-            title="AI Review Analyzer — Live Preview"
-            subtitle="Paste a few reviews and get real AI-powered sentiment analysis. Calls the live backend."
-          />
+      {/* ── Live Analyzer ─────────────────────────────────────────────── */}
+      <section style={{ padding:'8rem 3rem', borderTop:'1px solid rgba(255,255,255,0.05)' }}>
+        <div style={{ maxWidth:900, margin:'0 auto' }}>
+          <RevealSection>
+            <span className="eyebrow" style={{ display:'block', marginBottom:'1.5rem' }}>Try It Live</span>
+            <h2 className="display" style={{ fontSize:'clamp(2rem,4vw,3rem)', color:'#F0EDE6', marginBottom:'1rem' }}>
+              Real AI analysis, right now
+            </h2>
+            <p style={{ fontSize:'0.9rem', color:'rgba(240,237,230,0.4)', marginBottom:'3rem', lineHeight:1.8 }}>
+              Paste any guest reviews below and see live sentiment analysis powered by our AI engine.
+            </p>
+          </RevealSection>
 
-          <div className="card">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="font-semibold text-himalaya-blue dark:text-himalaya-mist">
-                  Paste Guest Reviews
-                </h3>
-                <p className="text-xs text-gray-400 mt-0.5">One review per line — up to 50 at once</p>
-              </div>
-              {previewCount > 0 && (
-                <span className="text-xs font-medium bg-himalaya-mist dark:bg-himalaya-blue/30 text-himalaya-blue dark:text-himalaya-mist px-3 py-1 rounded-full">
-                  {previewCount} review{previewCount !== 1 ? 's' : ''}
+          <RevealSection delay={100}>
+            <div style={{ background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.07)', padding:'2.5rem', borderRadius:2 }}>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'1.2rem' }}>
+                <span style={{ fontSize:'0.75rem', color:'rgba(240,237,230,0.35)', fontFamily:"'DM Mono',monospace", letterSpacing:'0.08em', textTransform:'uppercase' }}>
+                  Guest Reviews Input
                 </span>
-              )}
-            </div>
-
-            <Input
-              type="textarea"
-              rows={6}
-              className="h-40"
-              placeholder={`Try pasting:\n${EXAMPLE_TEXT}`}
-              value={previewText}
-              onChange={(e) => { setPreviewText(e.target.value); setResults([]); setError(''); }}
-              disabled={loading}
-              aria-label="Preview reviews input"
-            />
-
-            {/* Error */}
-            {error && (
-              <div className="mt-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-sm rounded-xl px-4 py-3 flex justify-between items-start gap-2">
-                <span>{error}</span>
-                <button onClick={() => setError('')} className="text-red-400 hover:text-red-600 flex-shrink-0">✕</button>
+                {text.trim() && (
+                  <span style={{ fontSize:'0.7rem', color:'#4B9FD5', fontFamily:"'DM Mono',monospace" }}>
+                    {text.trim().split('\n').filter(l=>l.trim()).length} reviews
+                  </span>
+                )}
               </div>
-            )}
-
-            <div className="flex flex-wrap gap-3 mt-4">
-              <Button
-                onClick={handleAnalyzePreview}
-                disabled={!previewText.trim() || loading}
-                loading={loading}
-                icon={<span>🧠</span>}
-                className="flex-1 sm:flex-none"
-              >
-                {loading ? 'Analyzing…' : 'Analyze Reviews'}
-              </Button>
-              <Button
-                onClick={() => { setPreviewText(EXAMPLE_TEXT); setResults([]); setError(''); }}
-                variant="secondary"
-                icon={<span>📋</span>}
+              <textarea
+                className="input"
+                rows={6}
+                placeholder={`Paste reviews here, one per line...\n\nExample:\n${EXAMPLE_TEXT}`}
+                value={text}
+                onChange={e => { setText(e.target.value); setResults([]); setError(''); }}
                 disabled={loading}
-              >
-                Load Examples
-              </Button>
-              {previewText && (
-                <Button onClick={handleClear} variant="danger" icon={<span>🗑</span>} disabled={loading}>
-                  Clear
-                </Button>
+                style={{ marginBottom:'1.5rem' }}
+              />
+              {error && (
+                <div style={{ background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.2)', color:'#fca5a5', fontSize:'0.82rem', padding:'0.8rem 1rem', marginBottom:'1rem', borderRadius:2 }}>
+                  {error}
+                </div>
               )}
-            </div>
-          </div>
-
-          {/* Loading state */}
-          {loading && (
-            <div className="card mt-6 flex flex-col items-center justify-center py-10 gap-4 text-center">
-              <div className="flex gap-2">
-                {[0,1,2].map(i => (
-                  <div key={i} className="w-2.5 h-2.5 rounded-full bg-himalaya-blue animate-bounce"
-                    style={{ animationDelay: `${i * 0.15}s` }} />
-                ))}
+              <div style={{ display:'flex', gap:'0.75rem', flexWrap:'wrap' }}>
+                <button onClick={handleAnalyze} disabled={!text.trim() || loading} className="btn-primary">
+                  {loading ? 'Analyzing…' : 'Analyze Reviews →'}
+                </button>
+                <button onClick={() => { setText(EXAMPLE_TEXT); setResults([]); }} className="btn-ghost" disabled={loading}>
+                  Load Examples
+                </button>
+                {text && <button onClick={() => { setText(''); setResults([]); setError(''); }} className="btn-ghost" disabled={loading}>Clear</button>}
               </div>
-              <p className="text-himalaya-blue dark:text-himalaya-mist font-semibold">
-                Analysing {previewCount} review{previewCount !== 1 ? 's' : ''} with AI…
-              </p>
             </div>
-          )}
+          </RevealSection>
 
-          {/* Real API Results Table */}
+          {/* Results */}
           {results.length > 0 && !loading && (
-            <div className="card mt-6 animate-fade-up">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-himalaya-blue dark:text-himalaya-mist">
-                  AI Analysis Results
-                  <span className="ml-2 text-xs font-normal text-emerald-600 dark:text-emerald-400">● Live from /api/analyze</span>
-                </h3>
-                <Link to="/dashboard" className="text-sm text-himalaya-sky hover:underline">
-                  Full Dashboard →
-                </Link>
-              </div>
-              <div className="overflow-x-auto rounded-xl border border-gray-100 dark:border-gray-700">
-                <table className="min-w-full divide-y divide-gray-100 dark:divide-gray-700">
+            <RevealSection delay={100}>
+              <div style={{ marginTop:'2rem', border:'1px solid rgba(255,255,255,0.07)', borderRadius:2, overflow:'hidden' }}>
+                <div style={{ padding:'1.2rem 1.5rem', borderBottom:'1px solid rgba(255,255,255,0.06)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                  <span style={{ fontSize:'0.72rem', fontFamily:"'DM Mono',monospace", letterSpacing:'0.1em', textTransform:'uppercase', color:'rgba(240,237,230,0.35)' }}>
+                    Analysis Results — {results.length} reviews
+                  </span>
+                  <Link to="/dashboard" style={{ fontSize:'0.78rem', color:'#4B9FD5', textDecoration:'none' }}>Full Dashboard →</Link>
+                </div>
+                <table className="table-luxury">
                   <thead>
-                    <tr className="bg-himalaya-mist/60 dark:bg-himalaya-blue/10">
-                      {['Review', 'Sentiment', 'Theme', 'Suggested Response'].map(h => (
-                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-himalaya-blue dark:text-himalaya-mist uppercase tracking-wider">
-                          {h}
-                        </th>
-                      ))}
+                    <tr>
+                      <th>Review</th><th>Sentiment</th><th>Theme</th><th>Response</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white dark:bg-himalaya-stone divide-y divide-gray-50 dark:divide-gray-700/50">
-                    {results.map((row, idx) => (
-                      <tr key={idx} className="hover:bg-himalaya-snow dark:hover:bg-himalaya-slate/50 transition-colors">
-                        <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-200 max-w-[200px]">
-                          <p className="line-clamp-2">{row.review}</p>
+                  <tbody>
+                    {results.map((r, i) => (
+                      <tr key={i}>
+                        <td style={{ maxWidth:200, fontSize:'0.82rem' }}><p style={{ overflow:'hidden', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical' }}>{r.review}</p></td>
+                        <td>
+                          <span className={`badge ${r.sentiment==='Positive'?'badge-pos':r.sentiment==='Negative'?'badge-neg':'badge-neu'}`}>
+                            {SENTIMENT_ICON[r.sentiment]} {r.sentiment}
+                          </span>
                         </td>
-                        <td className="px-4 py-3">
-                          <Badge variant={sentimentVariant(row.sentiment)}>
-                            {SENTIMENT_ICON[row.sentiment]} {row.sentiment}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-3">
-                          <Badge variant="theme">
-                            {THEME_ICON[row.theme]} {row.theme}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 italic max-w-[220px]">
-                          {row.response}
-                        </td>
+                        <td><span className="badge badge-theme">{THEME_ICON[r.theme]} {r.theme}</span></td>
+                        <td style={{ fontSize:'0.78rem', color:'rgba(240,237,230,0.4)', fontStyle:'italic', maxWidth:220 }}>{r.response}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-            </div>
-          )}
-
-          {/* Empty state — before user tries anything */}
-          {results.length === 0 && !loading && !error && !previewText && (
-            <div className="card mt-6 flex flex-col items-center justify-center py-12 gap-3 text-center border-2 border-dashed border-himalaya-blue/15 dark:border-himalaya-blue/30 bg-transparent shadow-none">
-              <div className="text-4xl">🏔️</div>
-              <p className="font-semibold text-himalaya-blue dark:text-himalaya-mist">Try the live analyser above</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm">
-                Paste any guest review text, or click <b>Load Examples</b>, then hit <b>Analyze Reviews</b>.
-              </p>
-            </div>
+            </RevealSection>
           )}
         </div>
       </section>
 
-      {/* ── CTA Banner ───────────────────────────────────────── */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto text-center card gradient-card text-white">
-          <h2 className="font-display text-3xl font-bold mb-4">Ready to understand your guests?</h2>
-          <p className="text-white/80 mb-8">Open the dashboard, paste your reviews, and let AI do the rest.</p>
-          <Button to="/dashboard" variant="outline" size="lg">
-            Open Dashboard →
-          </Button>
-        </div>
+      {/* ── CTA ───────────────────────────────────────────────────────── */}
+      <section style={{ padding:'8rem 3rem', borderTop:'1px solid rgba(255,255,255,0.05)' }}>
+        <RevealSection>
+          <div style={{ maxWidth:700, margin:'0 auto', textAlign:'center' }}>
+            <h2 className="display" style={{ fontSize:'clamp(2rem,4vw,3.5rem)', color:'#F0EDE6', marginBottom:'1.5rem' }}>
+              Ready to understand<br/><span className="display-italic text-gradient">your guests?</span>
+            </h2>
+            <p style={{ color:'rgba(240,237,230,0.4)', marginBottom:'2.5rem', fontSize:'0.95rem', lineHeight:1.9 }}>
+              Join hotels and homestays across the Himalayas using AI to turn guest feedback into competitive advantage.
+            </p>
+            <div style={{ display:'flex', gap:'1rem', justifyContent:'center', flexWrap:'wrap' }}>
+              <Link to="/register" className="btn-primary">Create Free Account</Link>
+              <Link to="/dashboard" className="btn-ghost">View Dashboard</Link>
+            </div>
+          </div>
+        </RevealSection>
       </section>
-    </>
+    </div>
   );
 };
-
 export default Home;

@@ -1,87 +1,44 @@
-/**
- * Footer Component
- * Responsive footer with links, socials and copyright
- */
-
 import { Link } from 'react-router-dom';
 
 const Footer = () => (
-  <footer className="bg-himalaya-slate dark:bg-black/40 text-gray-300 mt-auto">
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
-
-        {/* Brand */}
-        <div className="lg:col-span-2">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-2xl">🏔️</span>
-            <span className="font-display font-bold text-white text-lg">Himalayan Guest Intelligence</span>
+  <footer style={{ borderTop:'1px solid rgba(255,255,255,0.06)', background:'#070B14', padding:'4rem 3rem 2.5rem' }}>
+    <div style={{ maxWidth:1280, margin:'0 auto' }}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', flexWrap:'wrap', gap:'2rem', marginBottom:'3rem' }}>
+        <div>
+          <div style={{ display:'flex', alignItems:'center', gap:'0.6rem', marginBottom:'0.75rem' }}>
+            <span>🏔</span>
+            <span style={{ fontFamily:"'Cormorant Garant',serif", fontSize:'1.05rem', color:'#F0EDE6' }}>Himalayan</span>
           </div>
-          <p className="text-sm text-gray-400 leading-relaxed max-w-sm">
-            AI-powered guest review analysis for hotels and homestays in the Himalayan region.
-            Instantly understand your guests, improve your service.
+          <p style={{ fontSize:'0.8rem', color:'rgba(240,237,230,0.3)', maxWidth:260, lineHeight:1.8 }}>
+            AI-powered guest intelligence for hotels and homestays across the Himalayas.
           </p>
-          {/* Social placeholders */}
-          <div className="flex gap-3 mt-4">
-            {['GitHub', 'Twitter', 'LinkedIn'].map((social) => (
-              <a
-                key={social}
-                href="#"
-                className="w-9 h-9 rounded-lg bg-white/10 hover:bg-himalaya-sky/40 flex items-center justify-center text-xs font-bold transition-all"
-                title={social}
-              >
-                {social[0]}
-              </a>
-            ))}
-          </div>
         </div>
-
-        {/* Quick links */}
-        <div>
-          <h4 className="text-white font-semibold text-sm uppercase tracking-wider mb-4">Navigation</h4>
-          <ul className="space-y-2">
-            {[
-              { label: 'Home',       path: '/'            },
-              { label: 'About',      path: '/about'       },
-              { label: 'Dashboard',  path: '/dashboard'   },
-              { label: 'Login',      path: '/login'       },
-              { label: 'Components', path: '/components'  },
-            ].map((l) => (
-              <li key={l.path}>
-                <Link
-                  to={l.path}
-                  className="text-sm text-gray-400 hover:text-white transition-colors"
-                >
-                  {l.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Tech stack */}
-        <div>
-          <h4 className="text-white font-semibold text-sm uppercase tracking-wider mb-4">Built With</h4>
-          <ul className="space-y-2 text-sm text-gray-400">
-            {['React + Vite', 'Tailwind CSS', 'Express.js', 'OpenAI GPT-3.5', 'Recharts'].map((tech) => (
-              <li key={tech} className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-himalaya-sky flex-shrink-0" />
-                {tech}
-              </li>
-            ))}
-          </ul>
+        <div style={{ display:'flex', gap:'4rem', flexWrap:'wrap' }}>
+          {[['Platform', [['/', 'Home'],['/dashboard','Dashboard'],['/about','About']]],
+            ['Account', [['/login','Sign In'],['/register','Get Started']]]].map(([group, links]) => (
+            <div key={group}>
+              <div style={{ fontSize:'0.65rem', fontFamily:"'DM Mono',monospace", letterSpacing:'0.15em', textTransform:'uppercase', color:'rgba(240,237,230,0.25)', marginBottom:'1.2rem' }}>{group}</div>
+              <div style={{ display:'flex', flexDirection:'column', gap:'0.75rem' }}>
+                {links.map(([to, label]) => (
+                  <Link key={to} to={to} style={{ fontSize:'0.82rem', color:'rgba(240,237,230,0.4)', textDecoration:'none', transition:'color 0.2s' }}
+                    onMouseEnter={e=>e.target.style.color='#F0EDE6'} onMouseLeave={e=>e.target.style.color='rgba(240,237,230,0.4)'}>
+                    {label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
-
-      <div className="border-t border-white/10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-        <p className="text-xs text-gray-500">
-          © {new Date().getFullYear()} Himalayan Guest Experience Intelligence Platform. All rights reserved.
-        </p>
-        <p className="text-xs text-gray-500">
-            Built with React, Vite & Tailwind CSS
-        </p>
+      <div style={{ borderTop:'1px solid rgba(255,255,255,0.05)', paddingTop:'2rem', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'1rem' }}>
+        <span style={{ fontSize:'0.72rem', color:'rgba(240,237,230,0.2)', fontFamily:"'DM Mono',monospace" }}>
+          © 2026 Himalayan Guest Experience Intelligence Platform
+        </span>
+        <span style={{ fontSize:'0.72rem', color:'rgba(240,237,230,0.2)', fontFamily:"'DM Mono',monospace" }}>
+          Built by Pranjal Pundeer
+        </span>
       </div>
     </div>
   </footer>
 );
-
 export default Footer;

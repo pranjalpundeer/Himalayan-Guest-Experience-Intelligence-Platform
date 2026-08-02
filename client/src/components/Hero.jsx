@@ -1,170 +1,121 @@
-import Button from './ui/Button';
-import { useParallax } from '../hooks/useParallax';
+import { useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 
 const Hero = () => {
-  const bgRef    = useParallax(0.5, true);   // background moves most
-  const midRef   = useParallax(0.3, true);   // mid layer
-  const frontRef = useParallax(0.15, true);  // foreground text moves least
-  const mtnRef   = useParallax(0.4, false);  // mountain silhouette
+  const layer1 = useRef(null);
+  const layer2 = useRef(null);
+  const layer3 = useRef(null);
+
+  useEffect(() => {
+    let raf;
+    let mx = 0, my = 0, cx = 0, cy = 0;
+    const onMove = e => { mx = (e.clientX/window.innerWidth - 0.5); my = (e.clientY/window.innerHeight - 0.5); };
+    window.addEventListener('mousemove', onMove);
+    const tick = () => {
+      cx += (mx - cx) * 0.06; cy += (my - cy) * 0.06;
+      if (layer1.current) layer1.current.style.transform = `translate(${cx*-28}px, ${cy*-18}px)`;
+      if (layer2.current) layer2.current.style.transform = `translate(${cx*-14}px, ${cy*-9}px)`;
+      if (layer3.current) layer3.current.style.transform = `translate(${cx*-6}px, ${cy*-4}px)`;
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => { window.removeEventListener('mousemove', onMove); cancelAnimationFrame(raf); };
+  }, []);
 
   return (
-    <header style={{ position:"relative", overflow:"hidden", minHeight:"92vh",
-      background:"linear-gradient(135deg, #0a1628 0%, #0d2240 40%, #0e3a5c 70%, #0a2a45 100%)",
-      display:"flex", alignItems:"center", justifyContent:"center" }}>
-
-      {/* ── Layer 1: Stars (far background, moves most) ────────────────── */}
-      <div ref={bgRef} style={{
-        position:"absolute", inset:"-20% -10%", zIndex:1, willChange:"transform",
-      }}>
-        {Array.from({length:80}).map((_,i) => (
-          <div key={i} style={{
-            position:"absolute",
-            left:`${Math.random()*100}%`,
-            top:`${Math.random()*100}%`,
-            width: i%5===0 ? "3px" : "1.5px",
-            height: i%5===0 ? "3px" : "1.5px",
-            borderRadius:"50%",
-            background:"white",
-            opacity: 0.3 + Math.random()*0.6,
-            animation:`twinkle ${2+Math.random()*3}s ease-in-out infinite`,
-            animationDelay:`${Math.random()*3}s`,
-          }}/>
-        ))}
+    <section style={{
+      position:'relative', minHeight:'100vh', display:'flex', alignItems:'center',
+      overflow:'hidden', background:'#070B14',
+    }}>
+      {/* Layer 1 — deep background gradient orbs */}
+      <div ref={layer1} style={{ position:'absolute', inset:'-10%', willChange:'transform', pointerEvents:'none' }}>
+        <div style={{ position:'absolute', top:'10%', left:'5%', width:600, height:600, borderRadius:'50%', background:'radial-gradient(circle, rgba(75,159,213,0.07) 0%, transparent 70%)', filter:'blur(40px)' }}/>
+        <div style={{ position:'absolute', top:'40%', right:'5%', width:500, height:500, borderRadius:'50%', background:'radial-gradient(circle, rgba(201,169,110,0.05) 0%, transparent 70%)', filter:'blur(60px)' }}/>
+        <div style={{ position:'absolute', bottom:'10%', left:'30%', width:400, height:400, borderRadius:'50%', background:'radial-gradient(circle, rgba(126,200,227,0.05) 0%, transparent 70%)', filter:'blur(50px)' }}/>
       </div>
 
-      {/* ── Layer 2: Glowing orbs (mid layer) ─────────────────────────── */}
-      <div ref={midRef} style={{
-        position:"absolute", inset:0, zIndex:2, willChange:"transform",
-        pointerEvents:"none",
-      }}>
-        {[
-          {x:"15%",  y:"20%", w:300, col:"rgba(30,100,200,0.12)"},
-          {x:"70%",  y:"10%", w:250, col:"rgba(0,180,160,0.10)"},
-          {x:"50%",  y:"60%", w:400, col:"rgba(20,80,180,0.08)"},
-          {x:"80%",  y:"70%", w:200, col:"rgba(60,140,220,0.10)"},
-          {x:"5%",   y:"70%", w:280, col:"rgba(0,160,140,0.09)"},
-        ].map((o,i) => (
-          <div key={i} style={{
-            position:"absolute", left:o.x, top:o.y,
-            width:o.w, height:o.w, borderRadius:"50%",
-            background:`radial-gradient(circle, ${o.col}, transparent 70%)`,
-            transform:"translate(-50%,-50%)",
-            filter:"blur(40px)",
-          }}/>
-        ))}
-      </div>
-
-      {/* ── Layer 3: Mountain silhouette (mid-front) ──────────────────── */}
-      <div ref={mtnRef} style={{
-        position:"absolute", bottom:0, left:0, right:0,
-        zIndex:3, willChange:"transform",
-      }}>
-        <svg viewBox="0 0 1440 320" preserveAspectRatio="none"
-          style={{width:"100%", height:"auto", display:"block"}}>
-          {/* Far peaks */}
-          <polygon points="0,320 180,120 320,200 500,60 680,160 860,80 1040,180 1200,100 1440,160 1440,320"
-            fill="rgba(8,25,60,0.6)"/>
-          {/* Snow caps far */}
-          <polygon points="180,120 210,150 150,150" fill="rgba(220,235,255,0.5)"/>
-          <polygon points="500,60 535,100 465,100"  fill="rgba(220,235,255,0.55)"/>
-          <polygon points="860,80 895,118 825,118"  fill="rgba(220,235,255,0.5)"/>
-          {/* Near peaks */}
-          <polygon points="0,320 100,200 250,260 400,140 560,220 720,120 880,200 1040,130 1200,210 1440,150 1440,320"
-            fill="rgba(5,15,40,0.8)"/>
-          {/* Snow caps near */}
-          <polygon points="400,140 430,175 370,175" fill="rgba(230,242,255,0.6)"/>
-          <polygon points="720,120 755,158 685,158" fill="rgba(230,242,255,0.65)"/>
-          <polygon points="1040,130 1075,168 1005,168" fill="rgba(230,242,255,0.6)"/>
-          {/* Foreground base */}
-          <polygon points="0,320 0,280 1440,280 1440,320" fill="rgba(3,10,25,0.9)"/>
+      {/* Layer 2 — mountain silhouette */}
+      <div ref={layer2} style={{ position:'absolute', bottom:0, left:0, right:0, willChange:'transform', pointerEvents:'none' }}>
+        <svg viewBox="0 0 1440 400" preserveAspectRatio="none" style={{ width:'100%', height:'auto', display:'block', opacity:0.6 }}>
+          <defs>
+            <linearGradient id="mtn1" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#1a3a5c" stopOpacity="0.8"/>
+              <stop offset="100%" stopColor="#070B14" stopOpacity="1"/>
+            </linearGradient>
+            <linearGradient id="mtn2" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#0d2035" stopOpacity="0.9"/>
+              <stop offset="100%" stopColor="#070B14" stopOpacity="1"/>
+            </linearGradient>
+          </defs>
+          <polygon points="0,400 0,280 120,180 250,240 400,100 560,200 700,80 860,170 1000,60 1160,160 1300,90 1440,140 1440,400" fill="url(#mtn1)"/>
+          <polygon points="0,400 0,310 80,260 200,290 350,200 480,250 600,180 740,230 880,160 1000,210 1140,140 1280,200 1440,170 1440,400" fill="url(#mtn2)"/>
+          {/* Snow caps */}
+          <polygon points="400,100 430,138 370,138" fill="rgba(230,240,255,0.4)"/>
+          <polygon points="700,80 733,120 667,120"  fill="rgba(230,240,255,0.45)"/>
+          <polygon points="1000,60 1035,102 965,102" fill="rgba(230,240,255,0.4)"/>
         </svg>
       </div>
 
-      {/* ── Layer 4: Text content (moves least = closest to viewer) ────── */}
-      <div ref={frontRef} style={{
-        position:"relative", zIndex:5, textAlign:"center",
-        padding:"2rem", maxWidth:"900px", willChange:"transform",
-        marginBottom:"8rem",
-      }}>
-        {/* Badge */}
-        <div style={{
-          display:"inline-flex", alignItems:"center", gap:"0.5rem",
-          background:"rgba(255,255,255,0.08)", backdropFilter:"blur(12px)",
-          border:"1px solid rgba(255,255,255,0.15)", borderRadius:"999px",
-          padding:"0.4rem 1.2rem", fontSize:"0.8rem", color:"rgba(255,255,255,0.85)",
-          marginBottom:"2rem",
-          animation:"fadeUp 0.8s ease forwards",
-        }}>
-          <span>🏔️</span>
-          <span style={{letterSpacing:"0.05em"}}>Himalayan Hospitality Intelligence</span>
-          <span style={{width:8,height:8,borderRadius:"50%",background:"#34d399",
-            display:"inline-block", animation:"pulse 2s infinite"}}/>
-        </div>
+      {/* Layer 3 — thin horizontal line accent */}
+      <div ref={layer3} style={{ position:'absolute', top:'50%', left:0, right:0, height:1, background:'linear-gradient(90deg, transparent, rgba(75,159,213,0.15), transparent)', willChange:'transform', pointerEvents:'none' }}/>
 
-        {/* Title */}
-        <h1 style={{
-          fontSize:"clamp(2rem,5.5vw,4rem)", fontWeight:300,
-          color:"rgba(255,255,255,0.95)", lineHeight:1.2, marginBottom:"1.5rem",
-          fontFamily:"Georgia, serif", letterSpacing:"0.03em",
-          textShadow:"0 0 60px rgba(80,140,255,0.3)",
-          animation:"fadeUp 0.9s ease 0.15s forwards", opacity:0,
-        }}>
-          Himalayan Guest Experience<br/>
-          <span style={{color:"#7dd3fc", fontStyle:"italic"}}>Intelligence Platform</span>
-        </h1>
+      {/* Content */}
+      <div style={{ position:'relative', zIndex:10, maxWidth:1280, margin:'0 auto', padding:'8rem 3rem 6rem', width:'100%' }}>
+        <div style={{ maxWidth:720 }}>
 
-        {/* Subtitle */}
-        <p style={{
-          color:"rgba(255,255,255,0.55)", fontSize:"clamp(0.95rem,1.8vw,1.15rem)",
-          maxWidth:"600px", margin:"0 auto 2.5rem", lineHeight:1.8,
-          animation:"fadeUp 0.9s ease 0.3s forwards", opacity:0,
-        }}>
-          AI-powered guest review analysis for hotels and homestays. Instantly classify
-          guest sentiment, detect review themes, and generate intelligent responses.
-        </p>
+          {/* Eyebrow */}
+          <div style={{ display:'flex', alignItems:'center', gap:'0.75rem', marginBottom:'2.5rem', opacity:0, animation:'fadeUp 0.8s ease 0.1s forwards' }}>
+            <div style={{ width:32, height:1, background:'#4B9FD5' }}/>
+            <span className="eyebrow">Himalayan Hospitality Intelligence</span>
+            <div style={{ width:6, height:6, borderRadius:'50%', background:'#4B9FD5', animation:'pulse 2s infinite' }}/>
+          </div>
 
-        {/* CTAs */}
-        <div style={{
-          display:"flex", flexWrap:"wrap", justifyContent:"center", gap:"1rem",
-          animation:"fadeUp 0.9s ease 0.45s forwards", opacity:0,
-        }}>
-          <Button to="/dashboard" variant="primary" size="lg">Analyze Reviews →</Button>
-          <Button to="/about" variant="outline" size="lg">Learn More</Button>
-        </div>
+          {/* Title */}
+          <h1 className="display" style={{
+            fontSize:'clamp(3rem, 6vw, 5.5rem)',
+            color:'#F0EDE6', marginBottom:'1.5rem',
+            opacity:0, animation:'fadeUp 0.9s ease 0.25s forwards',
+          }}>
+            Guest Intelligence<br/>
+            <span className="display-italic text-gradient">for the Himalayas</span>
+          </h1>
 
-        {/* Feature pills */}
-        <div style={{
-          display:"flex", flexWrap:"wrap", justifyContent:"center",
-          gap:"1.5rem", marginTop:"2.5rem", fontSize:"0.78rem",
-          color:"rgba(255,255,255,0.4)", letterSpacing:"0.05em",
-          animation:"fadeUp 0.9s ease 0.6s forwards", opacity:0,
-        }}>
-          {[["#34d399","Sentiment Analysis"],["#fcd34d","Theme Classification"],
-            ["#93c5fd","Auto-Generated Responses"],["#f9a8d4","CSV Export"]].map(([col,label])=>(
-            <span key={label} style={{display:"flex",alignItems:"center",gap:"6px"}}>
-              <span style={{width:7,height:7,borderRadius:"50%",background:col,display:"inline-block"}}/>
-              {label}
-            </span>
-          ))}
+          {/* Subtitle */}
+          <p style={{
+            fontSize:'1rem', color:'rgba(240,237,230,0.45)', maxWidth:520,
+            lineHeight:1.9, marginBottom:'3rem',
+            opacity:0, animation:'fadeUp 0.9s ease 0.4s forwards',
+          }}>
+            AI-powered review analysis for hotels and homestays. Classify sentiment, identify themes, and generate intelligent management responses — instantly.
+          </p>
+
+          {/* CTAs */}
+          <div style={{ display:'flex', gap:'1rem', flexWrap:'wrap', opacity:0, animation:'fadeUp 0.9s ease 0.55s forwards' }}>
+            <Link to="/dashboard" className="btn-primary">Analyze Reviews →</Link>
+            <Link to="/about" className="btn-ghost">Learn More</Link>
+          </div>
+
+          {/* Stats row */}
+          <div style={{
+            display:'flex', gap:'3rem', marginTop:'5rem', paddingTop:'3rem',
+            borderTop:'1px solid rgba(255,255,255,0.06)',
+            opacity:0, animation:'fadeUp 0.9s ease 0.7s forwards',
+          }}>
+            {[['50+','Hotels using platform'],['10k+','Reviews analyzed'],['3s','Average analysis time']].map(([val, label]) => (
+              <div key={label}>
+                <div className="display" style={{ fontSize:'2rem', color:'#F0EDE6' }}>{val}</div>
+                <div style={{ fontSize:'0.72rem', color:'rgba(240,237,230,0.35)', letterSpacing:'0.06em', marginTop:'0.25rem', fontFamily:"'DM Mono',monospace", textTransform:'uppercase' }}>{label}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* CSS animations */}
       <style>{`
-        @keyframes fadeUp {
-          from { opacity:0; transform:translateY(24px); }
-          to   { opacity:1; transform:translateY(0); }
-        }
-        @keyframes twinkle {
-          0%,100% { opacity:0.2; } 50% { opacity:1; }
-        }
-        @keyframes pulse {
-          0%,100% { transform:scale(1); opacity:1; }
-          50% { transform:scale(1.4); opacity:0.6; }
-        }
+        @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.5)} }
       `}</style>
-    </header>
+    </section>
   );
 };
-
 export default Hero;
