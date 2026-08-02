@@ -9,8 +9,11 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import ProtectedRoute from './components/ProtectedRoute';
 import CinematicIntro from './components/CinematicIntro';
+import { useTheme } from './context/ThemeContext';
 
-function App() {
+function AppInner() {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const [introDone, setIntroDone] = useState(
     () => sessionStorage.getItem("intro_done") === "true"
   );
@@ -23,7 +26,12 @@ function App() {
   if (!introDone) return <CinematicIntro onEnter={handleEnter} />;
 
   return (
-    <div style={{ background:'#070B14', minHeight:'100vh' }}>
+    <div style={{
+      background: isDark ? '#070B14' : '#f5f5f0',
+      color: isDark ? '#F0EDE6' : '#0a0a0a',
+      minHeight:'100vh',
+      transition:'background 0.4s ease, color 0.4s ease',
+    }}>
       <Navbar />
       <main>
         <Routes>
@@ -39,4 +47,9 @@ function App() {
     </div>
   );
 }
+
+function App() {
+  return <AppInner />;
+}
+
 export default App;
